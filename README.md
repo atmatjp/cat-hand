@@ -25,6 +25,7 @@ pip install discord.py python-dotenv
 ```
 
 MacOSでの構築例
+
 ```zsh
 brew install git python
 git clone https://github.com/atmatjp/cat-hand
@@ -37,12 +38,12 @@ pip install discord.py python-dotenv
 ### .envの設定例
 
 ```python
-TOKEN = "取得したトークン"
-CHID = "チャンネルID"
+TOKEN = 取得したトークン
+CHID = チャンネルID
 #抽選の日時
-SCHEDULE_HOUR = "24時間表記"
+SCHEDULE_HOUR = 24時間表記
 SCHEDULE_MINUTE = 
-SCHEDULE_WEEKDAY = "曜日を指定 0=月曜日 から 6=日曜"
+SCHEDULE_WEEKDAY = 曜日を指定 0=月曜日 から 6=日曜
 ```
 
 ### 実行
