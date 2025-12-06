@@ -226,7 +226,7 @@ async def on_message(message):
             await message.channel.send("変更対象がいませんでした（全員既に抽選済かBotです）。")
         return
     #手動で抽選する時の処理
-    if naiyou.lower() == 'exe':
+    if naiyou.lower() == 'pick': # <-- 'exe' から 'pick' に変更
         #Bot以外の全メンバーから、抽選済に含まれていない人を選ぶ
         kouho = [m for m in zenin if m.id not in zumi]
         #候補がいなければ終了
