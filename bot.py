@@ -10,6 +10,11 @@ load_dotenv()
 TOKEN = os.getenv('DISCORD_BOT_TOKEN')
 CHID = os.getenv("CHANNEL_ID")
 CHANNEL_ID = int(CHID) if CHID and CHID.isdigit() else None
+#時間設定の読み込み(デフォルト値付き)
+SCHEDULE_HOUR = int(os.getenv('SCHEDULE_HOUR'))
+SCHEDULE_MINUTE = int(os.getenv('SCHEDULE_MINUTE'))
+SCHEDULE_WEEKDAY = int(os.getenv('SCHEDULE_WEEKDAY'))
+
 #デフォルトの権限設定を取得
 intents = discord.Intents.default()
 intents.members = True
@@ -63,11 +68,11 @@ def get_targets(message, args, server):
     #見つかったメンバー全員のリストを返す
     return targets
 #定期実行
-@tasks.loop(time=datetime.time(hour=10, minute=45, tzinfo=JST))
+@tasks.loop(time=datetime.time(hour=SCHEDULE_HOUR, minute=SCHEDULE_MINUTE, tzinfo=JST))
 async def weekly_lottery_task():
     #現在の日本時間を取得
     now_jst = datetime.datetime.now(JST)
-    if now_jst.weekday() == 4:
+    if now_jst.weekday() == SCHEDULE_WEEKDAY:
         #チャンネルID設定がない場合は中断
         if not CHANNEL_ID:
             print("チャンネルIDが設定されていません。")
@@ -93,7 +98,7 @@ async def weekly_lottery_task():
         #ファイルを保存
         save_data()
         #選ばれた人物をメンション付きで発表
-        await channel.send(f"【定期抽選】"+"\n"+"今週選ばれたのは... {erabareta_hito.mention} です!"+"\n"+"よろしくお願いします!")
+        await channel.send(f"【定期抽選】"+"\n"+"今週選ばれたのは..."+f"{erabareta_hito.mention} です!"+"\n"+"よろしくお願いします!")
 #Botが起動して準備完了した時に動く処理
 @client.event
 async def on_ready():
