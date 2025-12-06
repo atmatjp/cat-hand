@@ -1,8 +1,8 @@
 # cat-hand
 
-## Q.このコードを使用すると？
+ Q.このコードを使用すると？
 
-## A.特定のタイミングでサーバー内のメンバーを抽選するbotが作れます。
+ A.特定のタイミングでサーバー内のメンバーを抽選するbotが作れます。
 
 ### 機能
 * 毎週決まった日時に自動で抽選を行い、結果を送信します。
@@ -41,7 +41,7 @@ pip install discord.py python-dotenv
 TOKEN = 取得したトークン
 CHID = チャンネルID
 #抽選の日時
-SCHEDULE_HOUR = 24時間表記
+SCHEDULE_HOUR = 
 SCHEDULE_MINUTE = 
 SCHEDULE_WEEKDAY = 曜日を指定 0=月曜日 から 6=日曜
 ```
