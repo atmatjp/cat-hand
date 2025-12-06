@@ -10,16 +10,21 @@ load_dotenv()
 TOKEN = os.getenv('DISCORD_BOT_TOKEN')
 CHID = os.getenv("CHANNEL_ID")
 #自動抽選の結果を送信するチャンネルID
-CHANNEL_ID = CHID
+CHANNEL_ID = CHID if CHID and CHID.isdigit() else None
+if CHANNEL_ID:
+    CHANNEL_ID = int(CHANNEL_ID)
+
 #Discordに接続するための設定
 intents = discord.Intents.default()
 intents.members = True          
 intents.message_content = True  
 client = discord.Client(intents=intents)
+
 DATA_FILE = "./data/zumi.txt"
 zumi = []
 #日本標準時
 JST = datetime.timezone(datetime.timedelta(hours=9))
+
 #データをファイルに保存する関数
 def save_data():
     try:
@@ -31,6 +36,7 @@ def save_data():
         print("データを外部ファイルに格納しました。")
     except Exception as e:
         print(f"格納に失敗: {e}")
+
 #データをファイルから読み込む関数
 def load_data():
     global zumi
@@ -43,6 +49,7 @@ def load_data():
             print(f"外部にある変数格納ファイルの読み込みに失敗しました: {e}")
     else:
         print("新規スタート")
+
 #定期実行タスク
 @tasks.loop(time=datetime.time(hour=10, minute=45, tzinfo=JST))
 async def weekly_lottery_task():
@@ -50,6 +57,9 @@ async def weekly_lottery_task():
     now_jst = datetime.datetime.now(JST)
     if now_jst.weekday() == 4:
         #指定されたチャンネルを取得
+        if not CHANNEL_ID:
+            print("チャンネルIDが設定されていません。")
+            return
         channel = client.get_channel(CHANNEL_ID)
         if not channel:
             print(f"エラー: チャンネルID {CHANNEL_ID} が見つかりません。")
@@ -65,6 +75,7 @@ async def weekly_lottery_task():
         save_data()
         
         await channel.send(f"【定期抽選】"+"\n"+"今週選ばれたのは... {erabareta_hito.mention} です!")
+
 #Botのメイン処理
 @client.event
 async def on_ready():
@@ -73,6 +84,7 @@ async def on_ready():
     #定期実行タスクを開始
     if not weekly_lottery_task.is_running():
         weekly_lottery_task.start()
+
 #コマンドの処理
 @client.event
 async def on_message(message):
@@ -85,15 +97,18 @@ async def on_message(message):
         return
     # 全メンバーのリスト（Bot除く）
     zenin = [m for m in server.members if not m.bot]
+
     if naiyou.startswith("/help"):
         await message.channel.send("/help - 取説を表示"+"\n"+"/ls - 存在するリストを表示"+
-        "\n"+"/cat リスト名 - リストの中を確認"+"\n"+"/add ユーザ名 - これから発表するユーザを追加"+
-        "\n"+"/rm ユーザ名 - 指定したユーザを発表済リストへ除外する")
+        "\n"+"/cat リスト名 - リストの中を確認"+"\n"+"/add @User1 @User2 - 指定したユーザ(複数可)を未発表リストに戻す"+
+        "\n"+"/rm @User1 @User2 - 指定したユーザ(複数可)を発表済リストへ除外する")
         return
+
     # /lsの処理
     if naiyou.startswith("/ls"):
         await message.channel.send("zumi"+"\n"+"kouho")
         return
+
     # /catの処理
     if naiyou.startswith('/cat'):
         args = naiyou.split()
@@ -110,75 +125,107 @@ async def on_message(message):
                 else:
                     names.append(f"UnknownUser(ID:{mid})")
             if names:
-                await message.channel.send(f"抽選済:\n" + "\n".join(names))
+                await message.channel.send(f"抽選済(zumi):\n" + "\n".join(names))
             else:
                 await message.channel.send("抽選済は空です。")
         elif target_var == 'kouho':
             kouho = [m.display_name for m in zenin if m.id not in zumi]
-            
             if kouho:
-                await message.channel.send(f"未抽選:\n" + "\n".join(kouho))
+                await message.channel.send(f"未抽選(kouho):\n" + "\n".join(kouho))
             else:
                 await message.channel.send("未抽選は空です。")
         else:
             await message.channel.send(f"変数 {target_var} は存在しません。")
         return
-    #/addの処理
+
+    #/addの処理 (未抽選に戻す)
     if naiyou.startswith('/add'):
-        args = naiyou.split(maxsplit=1)
+        args = naiyou.split()
         if len(args) < 2:
-            await message.channel.send("対象を指定してください。\n例: /add @田中, /add /all")
+            await message.channel.send("対象を指定してください。\n例: /add @田中 @佐藤, /add /all")
             return
-        target_str = args[1]
-        if target_str == '/all':
+
+        # /add /all の処理
+        if args[1] == '/all':
             zumi = []
             save_data()
             await message.channel.send("メンバー全員を未抽選に戻しました。")
             return
-        taishou = None
-        if message.mentions:
-            taishou = message.mentions[0]
-        else:
-            taishou = discord.utils.find(lambda m: m.display_name == target_str or m.name == target_str, server.members)
 
-        if taishou:
+        targets = []
+        # メンションがある場合
+        if message.mentions:
+            targets = message.mentions
+        else:
+            # メンションがない場合、スペース区切りの名前として検索
+            name_list = args[1:]
+            for name_str in name_list:
+                found_member = discord.utils.find(lambda m: m.display_name == name_str or m.name == name_str, server.members)
+                if found_member:
+                    targets.append(found_member)
+        
+        if not targets:
+            await message.channel.send("対象のユーザーが見つかりませんでした。")
+            return
+
+        processed_names = []
+        for taishou in targets:
+            if taishou.bot: continue # Botは除外
             if taishou.id in zumi:
                 zumi.remove(taishou.id)
-                save_data()
-                await message.channel.send(f"{taishou.display_name} さんを未抽選に戻しました。")
-            else:
-                await message.channel.send(f"{taishou.display_name} さんは最初から未抽選です。")
+                processed_names.append(taishou.display_name)
+        
+        if processed_names:
+            save_data()
+            await message.channel.send(f"未抽選に戻しました:\n" + ", ".join(processed_names))
         else:
-            await message.channel.send(f"「{target_str}」さんが見つかりません。")
+            await message.channel.send("変更対象がいませんでした（全員既に未抽選かBotです）。")
         return
-    #/rmの処理
+
+    #/rmの処理 (抽選済にする)
     if naiyou.startswith('/rm'):
-        args = naiyou.split(maxsplit=1)
+        args = naiyou.split()
         if len(args) < 2:
-            await message.channel.send("対象を指定してください。")
+            await message.channel.send("対象を指定してください。\n例: /rm @田中 @佐藤, /rm /all")
             return
-        target_str = args[1]
-        #/rm /all の処理
-        if target_str == '/all':
+
+        # /rm /all の処理
+        if args[1] == '/all':
             zumi = [m.id for m in zenin]
             save_data()
             await message.channel.send("全員を抽選済にしました。")
             return
-        taishou = None
+
+        targets = []
+        # メンションがある場合
         if message.mentions:
-            taishou = message.mentions[0]
+            targets = message.mentions
         else:
-            taishou = discord.utils.find(lambda m: m.display_name == target_str or m.name == target_str, server.members)
-        if taishou:
+            # メンションがない場合、スペース区切りの名前として検索
+            name_list = args[1:]
+            for name_str in name_list:
+                found_member = discord.utils.find(lambda m: m.display_name == name_str or m.name == name_str, server.members)
+                if found_member:
+                    targets.append(found_member)
+
+        if not targets:
+            await message.channel.send("対象のユーザーが見つかりませんでした。")
+            return
+
+        processed_names = []
+        for taishou in targets:
+            if taishou.bot: continue # Botは除外
             if taishou.id not in zumi:
                 zumi.append(taishou.id)
-                save_data()
-                await message.channel.send(f"{taishou.display_name} さんを抽選済にしました。")
-            else:
-                await message.channel.send(f"{taishou.display_name} さんは既に抽選済です。")
+                processed_names.append(taishou.display_name)
+        
+        if processed_names:
+            save_data()
+            await message.channel.send(f"抽選済にしました:\n" + ", ".join(processed_names))
         else:
-            await message.channel.send(f"「{target_str}」さんが見つかりません。")
+            await message.channel.send("変更対象がいませんでした（全員既に抽選済かBotです）。")
         return
+
     # 抽選ロジック
     if naiyou.lower() == 'exe':
         kouho = [m for m in zenin if m.id not in zumi]
@@ -190,6 +237,5 @@ async def on_message(message):
         save_data()
         nokori = len(kouho) - 1
         await message.channel.send(f"選ばれたのは... {erabareta_hito.mention} です!"+"\n"+f"未発表の人は残り{nokori}人!")
+
 client.run(TOKEN)
-
-
