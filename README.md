@@ -11,7 +11,7 @@
 
 ### 環境構築
 
-debian/ubuntu系での構築例
+Debian / Ubuntu系での構築例
 
 ```zsh
 sudo apt install python3
@@ -24,9 +24,17 @@ source venv/bin/activate
 pip install discord.py python-dotenv
 ```
 
-### env
+MacOSでの構築例
+```zsh
+brew install git python
+git clone https://github.com/atmatjp/cat-hand
+cd cat-hand
+python3 -m venv venv
+source venv/bin/activate
+pip install discord.py python-dotenv
+```
 
-.env
+### .envの設定例
 
 ```python
 TOKEN = "取得したトークン"
