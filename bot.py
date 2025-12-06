@@ -9,10 +9,10 @@ import datetime
 load_dotenv()
 TOKEN = os.getenv('DISCORD_BOT_TOKEN')
 CHID = os.getenv("CHANNEL_ID")
+
 #自動抽選の結果を送信するチャンネルID
-CHANNEL_ID = CHID if CHID and CHID.isdigit() else None
-if CHANNEL_ID:
-    CHANNEL_ID = int(CHANNEL_ID)
+#IDが数字かどうかチェックして変換
+CHANNEL_ID = int(CHID) if CHID and CHID.isdigit() else None
 
 #Discordに接続するための設定
 intents = discord.Intents.default()
@@ -28,7 +28,6 @@ JST = datetime.timezone(datetime.timedelta(hours=9))
 #データをファイルに保存する関数
 def save_data():
     try:
-        # ディレクトリが存在しない場合は作成する処理を追加しておくと安全です
         os.makedirs(os.path.dirname(DATA_FILE), exist_ok=True)
         with open(DATA_FILE, 'w', encoding='utf-8') as f:
             for user_id in zumi:
@@ -50,13 +49,35 @@ def load_data():
     else:
         print("新規スタート")
 
+# メンバー検索用ヘルパー関数（メンションと名前の両方に対応）
+def get_targets(message, args, server):
+    targets = []
+    # 1. まずメンションされた人を確保
+    if message.mentions:
+        targets.extend(message.mentions)
+    
+    # 2. テキストで指定された名前も探す
+    # args[1:] はコマンド(/addなど)を除いた部分
+    name_list = args[1:]
+    for name_str in name_list:
+        # すでにメンションで取得済みの文字列（<@123..>）はスキップ
+        if name_str.startswith('<@') and name_str.endswith('>'):
+            continue
+        
+        # 名前でメンバーを探す
+        found_member = discord.utils.find(lambda m: m.display_name == name_str or m.name == name_str, server.members)
+        
+        # 見つかった、かつ まだリストに入っていないなら追加
+        if found_member and found_member not in targets:
+            targets.append(found_member)
+            
+    return targets
+
 #定期実行タスク
 @tasks.loop(time=datetime.time(hour=10, minute=45, tzinfo=JST))
 async def weekly_lottery_task():
-    #今日の曜日を日本時間でチェック
     now_jst = datetime.datetime.now(JST)
     if now_jst.weekday() == 4:
-        #指定されたチャンネルを取得
         if not CHANNEL_ID:
             print("チャンネルIDが設定されていません。")
             return
@@ -81,7 +102,6 @@ async def weekly_lottery_task():
 async def on_ready():
     print(f'{client.user} ログイン完了,準備OK。')
     load_data()
-    #定期実行タスクを開始
     if not weekly_lottery_task.is_running():
         weekly_lottery_task.start()
 
@@ -152,17 +172,8 @@ async def on_message(message):
             await message.channel.send("メンバー全員を未抽選に戻しました。")
             return
 
-        targets = []
-        # メンションがある場合
-        if message.mentions:
-            targets = message.mentions
-        else:
-            # メンションがない場合、スペース区切りの名前として検索
-            name_list = args[1:]
-            for name_str in name_list:
-                found_member = discord.utils.find(lambda m: m.display_name == name_str or m.name == name_str, server.members)
-                if found_member:
-                    targets.append(found_member)
+        # メンションと名前テキストの両方を解析して対象リストを作る
+        targets = get_targets(message, args, server)
         
         if not targets:
             await message.channel.send("対象のユーザーが見つかりませんでした。")
@@ -170,7 +181,7 @@ async def on_message(message):
 
         processed_names = []
         for taishou in targets:
-            if taishou.bot: continue # Botは除外
+            if taishou.bot: continue
             if taishou.id in zumi:
                 zumi.remove(taishou.id)
                 processed_names.append(taishou.display_name)
@@ -196,17 +207,8 @@ async def on_message(message):
             await message.channel.send("全員を抽選済にしました。")
             return
 
-        targets = []
-        # メンションがある場合
-        if message.mentions:
-            targets = message.mentions
-        else:
-            # メンションがない場合、スペース区切りの名前として検索
-            name_list = args[1:]
-            for name_str in name_list:
-                found_member = discord.utils.find(lambda m: m.display_name == name_str or m.name == name_str, server.members)
-                if found_member:
-                    targets.append(found_member)
+        # メンションと名前テキストの両方を解析して対象リストを作る
+        targets = get_targets(message, args, server)
 
         if not targets:
             await message.channel.send("対象のユーザーが見つかりませんでした。")
@@ -214,7 +216,7 @@ async def on_message(message):
 
         processed_names = []
         for taishou in targets:
-            if taishou.bot: continue # Botは除外
+            if taishou.bot: continue
             if taishou.id not in zumi:
                 zumi.append(taishou.id)
                 processed_names.append(taishou.display_name)
