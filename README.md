@@ -4,12 +4,12 @@ Q.このコードを使用すると？
 
 A.特定のタイミングでサーバー内のメンバーを抽選するbotが作れます。
 
-### 機能
+## 機能
 * 毎週決まった日時に自動で抽選を行い、結果を送信します。
 * `/add`, `/rm` コマンドで、抽選対象や抽選済みメンバーを手動で管理可能。
 * 抽選結果は `data/zumi.txt` に保存され、重複当選を防ぎます。
 
-### 環境構築
+## 環境構築
 
 Debian / Ubuntu系での構築例
 
@@ -35,7 +35,7 @@ source venv/bin/activate
 pip install discord.py python-dotenv
 ```
 
-### .envの設定例
+## .envの設定例
 
 ```python
 TOKEN = 取得したトークン
@@ -46,13 +46,13 @@ SCHEDULE_MINUTE =
 SCHEDULE_WEEKDAY = 曜日を指定 0=月曜日 から 6=日曜
 ```
 
-### 実行
+## 実行
 
 ```python
 python3 bot.py
 ```
 
-### 使い方
+## 使い方
 
 | コマンド | 引数 | 説明 |
 | :--- | :--- | :--- |
