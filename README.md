@@ -13,7 +13,7 @@
 
 Debian / Ubuntu系での構築例
 
-```zsh
+```bash
 sudo apt install python3
 sudo apt install python3-venv
 sudo apt install pip
@@ -26,7 +26,7 @@ pip install discord.py python-dotenv
 
 MacOSでの構築例
 
-```zsh
+```bash
 brew install git python
 git clone https://github.com/atmatjp/cat-hand
 cd cat-hand
