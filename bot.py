@@ -124,8 +124,8 @@ async def on_message(message):
     #/help 名前の通り
     if naiyou.startswith("/help"):
         await message.channel.send("/help - 取説を表示"+"\n"+"/ls - 存在するリストを表示"+
-        "\n"+"/cat リスト名 - リストの中を確認"+"\n"+"/add @User1 @User2 - 指定したユーザ(複数可)を未発表リストに戻す"+
-        "\n"+"/rm @User1 @User2 - 指定したユーザ(複数可)を発表済リストへ除外する")
+        "\n"+"/cat リスト名 - リストの中を確認"+"\n"+"/add @User1 @User2 - 指定したユーザを未抽選リストに戻す"+
+        "\n"+"/rm @User1 @User2 - 指定したユーザを抽選済リストへ除外する")
         return
     #/ls どんなリストが存在しているのか確認するためのコマンド(正直いらない)
     if naiyou.startswith("/ls"):
