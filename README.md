@@ -14,9 +14,9 @@ A.特定のタイミングでサーバー内のメンバーを抽選するbotが
 Debian / Ubuntu系での構築例
 
 ```bash
-sudo apt install python3
-sudo apt install python3-venv
-sudo apt install pip
+sudo apt install python3 -y
+sudo apt install python3-venv -y
+sudo apt install pip -y
 git clone https://github.com/atmatjp/cat-hand
 cd cat-hand
 python3 -m venv venv
